@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+*.env
+
+# TLS/SSL certificates (keep templates, ignore generated)
+certs/*.pem
+certs/*.key
+certs/*.crt
+!certs/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+screenshots/
+
+# Linux system files
+*.pid
+*.sock
+
+# Docker
+.docker/
+
+# Client data
+client/data/
+client/*.jpg
+client/*.png
+
+# Server data
+server/data/context_*.json
+
+# User configuration (keep examples)
+config/todo.txt
+!config/todo.txt.example
+config/api_key.txt
+!config/api_key.txt.example

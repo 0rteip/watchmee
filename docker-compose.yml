@@ -1,0 +1,63 @@
+services:
+  companion-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: ai-companion-server
+    ports:
+      - "8443:8443"
+    volumes:
+      # Mount certificates
+      - ./certs:/app/certs:ro
+      # Mount configuration files
+      - ./config:/app/config:ro
+    environment:
+      - API_KEY=${API_KEY:-change-me-in-production}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - VISION_MODEL=${VISION_MODEL:-moondream}
+      - REASONING_MODEL=${REASONING_MODEL:-llama3}
+      - DEBUG=${DEBUG:-false}
+      - CONTEXT_WINDOW_SIZE=${CONTEXT_WINDOW_SIZE:-10}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - companion-net
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-companion-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      # Using ollama CLI instead of curl (curl not available in ollama image)
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - companion-net
+    restart: unless-stopped
+    # Uncomment for GPU support (NVIDIA)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  ollama-data:
+    name: companion-ollama-data
+
+networks:
+  companion-net:
+    name: companion-network
+    driver: bridge

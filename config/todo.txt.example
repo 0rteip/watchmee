@@ -1,0 +1,11 @@
+# Todo.txt format - https://github.com/todotxt/todo.txt
+# Priority: (A) highest, (B) medium, (C) lower
+# Mark complete with 'x ' at the start
+
+(A) Complete the AI companion project setup
+(A) Test Docker deployment locally
+(B) Write unit tests for server endpoints
+(B) Configure SSL certificates for production
+(C) Add more AI personas
+(C) Implement idle detection improvements
+Review code documentation
