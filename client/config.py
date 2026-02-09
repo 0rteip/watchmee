@@ -4,7 +4,6 @@ Client configuration using Pydantic Settings.
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from functools import lru_cache
-from pathlib import Path
 
 
 class ClientSettings(BaseSettings):
@@ -42,10 +41,6 @@ class ClientSettings(BaseSettings):
     )
     
     # Behavior
-    idle_threshold: int = Field(
-        default=300,
-        description="Seconds of inactivity before pausing captures"
-    )
     suppress_when_meeting: bool = Field(
         default=True,
         description="Suppress notifications when mic is unmuted"
@@ -61,7 +56,6 @@ class ClientSettings(BaseSettings):
         description="Notification timeout in milliseconds"
     )
     
-    # Request timeout (for slow CPU inference)
     request_timeout: int = Field(
         default=300,
         description="HTTP request timeout in seconds"

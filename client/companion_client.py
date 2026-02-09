@@ -7,9 +7,6 @@ Captures screen activity, gathers system context, and sends to server for analys
 
 Requirements (Arch Linux):
     pacman -S grim playerctl libnotify pipewire-pulse
-    
-Optional:
-    pacman -S slurp  # For region selection
 
 Usage:
     python companion_client.py
@@ -18,10 +15,10 @@ Environment variables (or .env file):
     COMPANION_API_KEY=your-api-key
     COMPANION_SERVER_URL=https://localhost:8443
     COMPANION_CAPTURE_INTERVAL=60
+    COMPANION_LOG_FILE=/path/to/companion.log
 """
 
 import asyncio
-import base64
 import io
 import json
 import logging
@@ -29,7 +26,6 @@ import os
 import signal
 import sys
 import tempfile
-import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -46,18 +42,37 @@ from wayland_utils import (
     get_media_status,
     get_microphone_status,
     send_notification,
-    check_idle_status,
-    check_required_tools,
-    Compositor
+    check_required_tools
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
 logger = logging.getLogger("companion-client")
+
+
+def configure_logging(settings: ClientSettings, verbose: bool) -> None:
+    """Configure logging using client settings."""
+    log_level = logging.DEBUG if verbose else getattr(
+        logging,
+        settings.log_level.upper(),
+        logging.INFO
+    )
+
+    handlers = []
+    if settings.log_file:
+        log_path = Path(settings.log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        handlers.append(logging.FileHandler(log_path))
+    else:
+        handlers.append(logging.StreamHandler(sys.stdout))
+
+    root_logger = logging.getLogger()
+    for handler in list(root_logger.handlers):
+        root_logger.removeHandler(handler)
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=handlers
+    )
 
 
 class CompanionClient:
@@ -76,13 +91,8 @@ class CompanionClient:
         self._shutdown_event = asyncio.Event()
         self.verbose = verbose
         self.capture_count = 0
-        
-        # Configure logging level
-        if verbose:
-            logger.setLevel(logging.DEBUG)
-        else:
-            log_level = getattr(logging, self.settings.log_level.upper(), logging.INFO)
-            logger.setLevel(log_level)
+
+        configure_logging(self.settings, verbose)
         
         # HTTP client configuration
         self.http_client: Optional[httpx.AsyncClient] = None
@@ -184,10 +194,6 @@ class CompanionClient:
     
     async def _capture_and_send(self) -> None:
         """Capture screen and context, send to server."""
-        # Check idle status
-        if check_idle_status(self.settings.idle_threshold):
-            logger.debug("User appears idle, skipping capture")
-            return
         
         # Get microphone status first (for meeting detection)
         mic_status = get_microphone_status()

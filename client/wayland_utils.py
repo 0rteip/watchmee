@@ -406,50 +406,6 @@ def capture_screenshot(output_path: str) -> bool:
         return False
 
 
-def capture_screenshot_region(output_path: str) -> bool:
-    """
-    Capture a screenshot of a selected region using grim + slurp.
-    
-    Args:
-        output_path: Path to save the screenshot
-        
-    Returns:
-        True if successful, False otherwise
-    """
-    if not shutil.which("grim") or not shutil.which("slurp"):
-        logger.error("grim and slurp required - please install: pacman -S grim slurp")
-        return False
-    
-    try:
-        # Get region from slurp
-        slurp_result = subprocess.run(
-            ["slurp"],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        if slurp_result.returncode != 0:
-            logger.error("Region selection cancelled")
-            return False
-        
-        region = slurp_result.stdout.strip()
-        
-        # Capture the region
-        result = subprocess.run(
-            ["grim", "-g", region, output_path],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        return result.returncode == 0
-        
-    except Exception as e:
-        logger.error(f"Region capture failed: {e}")
-        return False
-
-
 def get_media_status() -> Tuple[str, Optional[str]]:
     """
     Get media playback status using playerctl.
@@ -598,70 +554,6 @@ def send_notification(
         return False
 
 
-def check_idle_status(idle_threshold_seconds: int = 300) -> bool:
-    """
-    Check if the user is idle using various Wayland methods.
-    
-    Args:
-        idle_threshold_seconds: Seconds of inactivity to consider idle
-        
-    Returns:
-        True if user appears idle, False otherwise
-    """
-    # Try hypridle/hyprland method
-    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
-        try:
-            # Hyprland doesn't have direct idle query, but we can check
-            # if any input devices have recent activity
-            # This is a simplified check
-            result = subprocess.run(
-                ["hyprctl", "devices", "-j"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            # If we can query devices, user is probably active
-            if result.returncode == 0:
-                return False
-        except:
-            pass
-    
-    # Try swayidle-related check for Sway
-    if os.environ.get("SWAYSOCK"):
-        # swayidle itself doesn't provide query, but sway's idle inhibitors can help
-        try:
-            result = subprocess.run(
-                ["swaymsg", "-t", "get_seats"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            # If we can communicate with sway, check further
-            if result.returncode == 0:
-                return False  # Basic activity check
-        except:
-            pass
-    
-    # Try generic XDG idle portal (requires xdg-desktop-portal)
-    # Note: This requires D-Bus integration which is complex via subprocess
-    
-    # Fallback: check /proc for recent input activity
-    try:
-        # Check if any input device had recent activity
-        import time
-        for input_dev in ["/dev/input/mice", "/dev/input/mouse0"]:
-            if os.path.exists(input_dev):
-                stat = os.stat(input_dev)
-                age = time.time() - stat.st_atime
-                if age < idle_threshold_seconds:
-                    return False
-    except:
-        pass
-    
-    # Default to not idle if we can't determine
-    return False
-
-
 def check_required_tools() -> dict:
     """
     Check which required tools are available.
@@ -671,7 +563,6 @@ def check_required_tools() -> dict:
     """
     tools = {
         "grim": "Screenshot capture",
-        "slurp": "Region selection (optional)",
         "playerctl": "Media status",
         "pactl": "PulseAudio mic status",
         "wpctl": "PipeWire mic status",

@@ -26,7 +26,6 @@ class UserStatus(str, Enum):
     """Inferred user status."""
     ACTIVE = "active"
     IN_MEETING = "in_meeting"
-    IDLE = "idle"
     AWAY = "away"
 
 
