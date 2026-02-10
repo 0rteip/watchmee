@@ -1,0 +1,110 @@
+{
+    "profiles": {
+        "fast": {
+            "name": "Fast (CPU Optimized)",
+            "description": "Optimized for slow CPUs, minimal RAM usage",
+            "vision_model": "moondream",
+            "reasoning_model": "llama3.2:1b",
+            "ram_usage": "~2.5GB",
+            "speed": "Very Fast",
+            "quality": "Good"
+        },
+        "balanced": {
+            "name": "Balanced (Recommended)",
+            "description": "Good balance between speed and quality",
+            "vision_model": "moondream",
+            "reasoning_model": "llama3.2:3b",
+            "ram_usage": "~3.5GB",
+            "speed": "Fast",
+            "quality": "Very Good"
+        },
+        "quality": {
+            "name": "Quality (Best Results)",
+            "description": "Best quality, requires good hardware",
+            "vision_model": "moondream",
+            "reasoning_model": "llama3:8b",
+            "ram_usage": "~6GB",
+            "speed": "Moderate",
+            "quality": "Excellent"
+        },
+        "vision-focus": {
+            "name": "Vision Focus",
+            "description": "Best for detailed screen analysis",
+            "vision_model": "llava:7b",
+            "reasoning_model": "llama3.2:3b",
+            "ram_usage": "~6GB",
+            "speed": "Moderate",
+            "quality": "Excellent (Vision)"
+        },
+        "experimental": {
+            "name": "Experimental",
+            "description": "Latest models for testing",
+            "vision_model": "llava:13b",
+            "reasoning_model": "qwen2.5:7b",
+            "ram_usage": "~10GB",
+            "speed": "Slow",
+            "quality": "Varies"
+        }
+    },
+    "models": {
+        "vision": {
+            "moondream": {
+                "size": "1.7GB",
+                "description": "Lightweight vision model, fast inference",
+                "strengths": ["Speed", "Low RAM", "Good accuracy"],
+                "recommended_for": "Most users"
+            },
+            "llava:7b": {
+                "size": "4.7GB",
+                "description": "Full LLaVA model with better understanding",
+                "strengths": ["Detailed analysis", "Better context"],
+                "recommended_for": "Detailed screen analysis"
+            },
+            "llava:13b": {
+                "size": "8GB",
+                "description": "Large LLaVA model, best quality",
+                "strengths": ["Highest quality", "Best understanding"],
+                "recommended_for": "High-end systems"
+            }
+        },
+        "reasoning": {
+            "llama3.2:1b": {
+                "size": "1.3GB",
+                "description": "Smallest Llama 3.2, very fast",
+                "strengths": ["Speed", "Low RAM"],
+                "recommended_for": "Old hardware"
+            },
+            "llama3.2:3b": {
+                "size": "2GB",
+                "description": "Llama 3.2 3B, excellent balance",
+                "strengths": ["Speed", "Quality", "Efficiency"],
+                "recommended_for": "Most users (default)"
+            },
+            "llama3:8b": {
+                "size": "4.7GB",
+                "description": "Full Llama 3 8B model",
+                "strengths": ["Quality", "Coherence"],
+                "recommended_for": "Best responses"
+            },
+            "qwen2.5:7b": {
+                "size": "4.7GB",
+                "description": "Qwen 2.5 7B, excellent reasoning",
+                "strengths": ["Reasoning", "Coding"],
+                "recommended_for": "Development contexts"
+            },
+            "phi3:3b": {
+                "size": "2.2GB",
+                "description": "Microsoft Phi-3, compact and smart",
+                "strengths": ["Efficiency", "Accuracy"],
+                "recommended_for": "Alternative to Llama"
+            }
+        }
+    },
+    "default_profile": "balanced",
+    "notes": [
+        "All sizes are approximate download sizes",
+        "RAM usage is higher than model size during inference",
+        "CPU inference is ~10-30x slower than GPU",
+        "Test different models to find what works best for you"
+    ]
+}

@@ -3,10 +3,15 @@ API routes for the companion server.
 """
 
 import base64
+import json
 import logging
+from pathlib import Path
+
+import httpx
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 
-from app.models import ClientMetadata, FeedbackResponse, HealthResponse, UserStatus
+from app.models import ClientMetadata, FeedbackResponse, HealthResponse, UserStatus, ModelsResponse, SwitchModelRequest, SwitchModelResponse
+from app.config import get_settings
 from app.security import verify_api_key
 from app.services.ollama import get_ollama_service
 from app.services.context import get_context_manager
@@ -47,8 +52,6 @@ async def analyze_activity(
     Accepts a screenshot and metadata, analyzes with vision model,
     maintains context window, and generates feedback.
     """
-    import json
-
     # Parse metadata
     try:
         meta_dict = json.loads(metadata)
@@ -210,3 +213,144 @@ async def reload_todos(_: str = Depends(verify_api_key)):
         "todos_count": len(context_mgr.todo_items),
         "todos": context_mgr.get_todos_text(),
     }
+
+
+@router.get("/models", response_model=ModelsResponse)
+async def get_models(_: str = Depends(verify_api_key)):
+    """
+    Get current model configuration and available options.
+    """
+    ollama = get_ollama_service()
+    
+    # Load model profiles
+    profiles_path = Path("/app/config/model-profiles.json")
+    profiles_data = {}
+    if profiles_path.exists():
+        with open(profiles_path) as f:
+            data = json.load(f)
+            profiles_data = data.get("profiles", {})
+    
+    # Get installed models
+    installed = await ollama.list_models()
+    
+    # Read current models from the service instance (not cached settings)
+    return ModelsResponse(
+        current_vision=ollama.vision_model,
+        current_reasoning=ollama.reasoning_model,
+        available_profiles=profiles_data,
+        installed_models=installed,
+    )
+
+
+@router.post("/models/switch", response_model=SwitchModelResponse)
+async def switch_models(
+    request: SwitchModelRequest,
+    _: str = Depends(verify_api_key)
+):
+    """
+    Switch models at runtime without restarting the server.
+    Can switch by profile or specify individual models.
+    """
+    ollama = get_ollama_service()
+    new_vision = None
+    new_reasoning = None
+    
+    # Validate: must specify either a profile or at least one model
+    if not request.profile and not request.vision_model and not request.reasoning_model:
+        raise HTTPException(
+            status_code=400,
+            detail="Must specify 'profile' or at least one of 'vision_model'/'reasoning_model'"
+        )
+    
+    try:
+        # If profile specified, load from config
+        if request.profile:
+            profiles_path = Path("/app/config/model-profiles.json")
+            if not profiles_path.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail="Model profiles configuration not found"
+                )
+            
+            with open(profiles_path) as f:
+                data = json.load(f)
+                profiles = data.get("profiles", {})
+                
+                if request.profile not in profiles:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Profile '{request.profile}' not found"
+                    )
+                
+                profile = profiles[request.profile]
+                new_vision = profile["vision_model"]
+                new_reasoning = profile["reasoning_model"]
+        else:
+            # Use individual model specifications
+            new_vision = request.vision_model
+            new_reasoning = request.reasoning_model
+        
+        # Apply changes using hot-reload
+        result = await ollama.reload_models(
+            vision_model=new_vision,
+            reasoning_model=new_reasoning
+        )
+        
+        if result:
+            return SwitchModelResponse(
+                success=True,
+                message="Models switched successfully",
+                new_vision=new_vision or ollama.vision_model,
+                new_reasoning=new_reasoning or ollama.reasoning_model,
+            )
+        else:
+            return SwitchModelResponse(
+                success=False,
+                message="Failed to switch models - check if models are installed",
+                new_vision=ollama.vision_model,
+                new_reasoning=ollama.reasoning_model,
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error switching models: {e}")
+        return SwitchModelResponse(
+            success=False,
+            message=f"Error: {str(e)}",
+            new_vision=ollama.vision_model,
+            new_reasoning=ollama.reasoning_model,
+        )
+
+
+@router.post("/models/pull/{model_name}")
+async def pull_model(model_name: str, _: str = Depends(verify_api_key)):
+    """
+    Trigger pulling a model from Ollama registry.
+    This is async and may take a while depending on model size.
+    """
+    settings = get_settings()
+    
+    try:
+        async with httpx.AsyncClient(timeout=600.0) as client:
+            response = await client.post(
+                f"{settings.ollama_base_url}/api/pull",
+                json={"name": model_name, "stream": False}
+            )
+            
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "message": f"Model '{model_name}' pulled successfully"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Failed to pull model: {response.text}"
+                }
+    except Exception as e:
+        logger.error(f"Error pulling model: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error pulling model: {str(e)}"
+        )

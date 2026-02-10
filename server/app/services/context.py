@@ -6,7 +6,7 @@ import logging
 import aiofiles
 from pathlib import Path
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models import (
     ContextWindow, ContextEntry, Persona, TodoItem,
@@ -142,7 +142,7 @@ class ContextManager:
     ) -> None:
         """Add a new entry to the context window."""
         entry = ContextEntry(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             window_title=window_title,
             class_name=class_name,
             media_status=media_status,

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Ollama
     ollama_base_url: str = Field(default="http://ollama:11434", description="Ollama API base URL")
     vision_model: str = Field(default="moondream", description="Vision model for image analysis")
-    reasoning_model: str = Field(default="llama3", description="Reasoning model for feedback")
+    reasoning_model: str = Field(default="llama3.2:1b", description="Reasoning model for feedback")
     
     # Context
     context_window_size: int = Field(default=10, description="Sliding window size for context")
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     
     # Performance
     max_image_width: int = Field(default=1024, description="Maximum image width")
-    request_timeout: float = Field(default=180.0, description="Request timeout in seconds")
+    request_timeout: float = Field(default=300.0, description="Request timeout in seconds")
     
     class Config:
         env_file = ".env"

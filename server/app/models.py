@@ -2,8 +2,8 @@
 Pydantic models for API request/response validation.
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional, List, Dict
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -37,7 +37,7 @@ class ClientMetadata(BaseModel):
     media_info: Optional[str] = Field(default=None, description="e.g., 'Spotify - Song Name'")
     microphone_status: MicrophoneStatus = Field(default=MicrophoneStatus.UNKNOWN)
     user_status: UserStatus = Field(default=UserStatus.ACTIVE)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     compositor: Optional[str] = Field(default=None, description="Wayland compositor name")
 
 
@@ -106,7 +106,7 @@ class FeedbackResponse(BaseModel):
     context_summary: str
     user_status: UserStatus
     suppress_notification: bool = Field(default=False)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class HealthResponse(BaseModel):
@@ -115,3 +115,26 @@ class HealthResponse(BaseModel):
     version: str
     ollama_connected: bool
     models_available: List[str]
+
+
+class ModelsResponse(BaseModel):
+    """Response containing current models and available options."""
+    current_vision: str
+    current_reasoning: str
+    available_profiles: Dict[str, dict]
+    installed_models: List[str]
+
+
+class SwitchModelRequest(BaseModel):
+    """Request to switch models."""
+    profile: Optional[str] = None
+    vision_model: Optional[str] = None
+    reasoning_model: Optional[str] = None
+
+
+class SwitchModelResponse(BaseModel):
+    """Response after switching models."""
+    success: bool
+    message: str
+    new_vision: Optional[str] = None
+    new_reasoning: Optional[str] = None

@@ -15,7 +15,7 @@ services:
       - API_KEY=${API_KEY:-change-me-in-production}
       - OLLAMA_BASE_URL=http://ollama:11434
       - VISION_MODEL=${VISION_MODEL:-moondream}
-      - REASONING_MODEL=${REASONING_MODEL:-llama3}
+      - REASONING_MODEL=${REASONING_MODEL:-llama3.2:1b}
       - DEBUG=${DEBUG:-false}
       - CONTEXT_WINDOW_SIZE=${CONTEXT_WINDOW_SIZE:-10}
     depends_on:

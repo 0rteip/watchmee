@@ -3,7 +3,6 @@ Ollama integration service for vision and reasoning.
 """
 
 import httpx
-import base64
 import logging
 from typing import Optional, List
 from app.config import get_settings
@@ -20,6 +19,81 @@ class OllamaService:
         self.vision_model = self.settings.vision_model
         self.reasoning_model = self.settings.reasoning_model
         self.timeout = self.settings.request_timeout
+
+    def _model_exists(self, model: str, available: List[str]) -> bool:
+        """Check if model exists, handling tag variations like moondream vs moondream:latest."""
+        # Exact match
+        if model in available:
+            return True
+        
+        model_base = model.split(':')[0]
+        model_tag = model.split(':')[1] if ':' in model else None
+        
+        for avail in available:
+            avail_base = avail.split(':')[0]
+            avail_tag = avail.split(':')[1] if ':' in avail else None
+            
+            if model_base != avail_base:
+                continue
+            
+            # Same base name: only match if one side has no tag
+            # (e.g., "moondream" matches "moondream:latest")
+            # Do NOT match different tags (e.g., "llama3.2:3b" vs "llama3.2:1b")
+            if model_tag is None or avail_tag is None:
+                return True
+            if model_tag == avail_tag:
+                return True
+        
+        return False
+
+    async def reload_models(
+        self,
+        vision_model: Optional[str] = None,
+        reasoning_model: Optional[str] = None
+    ) -> bool:
+        """
+        Hot-reload models without restarting the server.
+        
+        Args:
+            vision_model: New vision model name (None to keep current)
+            reasoning_model: New reasoning model name (None to keep current)
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Validate models exist
+            available = await self.list_models()
+            logger.info(f"Available models: {available}")
+            
+            if vision_model:
+                if not self._model_exists(vision_model, available):
+                    logger.warning(f"Vision model '{vision_model}' not installed")
+                    logger.info(f"Available models: {', '.join(available)}")
+                    return False
+            
+            if reasoning_model:
+                if not self._model_exists(reasoning_model, available):
+                    logger.warning(f"Reasoning model '{reasoning_model}' not installed")
+                    logger.info(f"Available models: {', '.join(available)}")
+                    return False
+            
+            # Update models
+            if vision_model:
+                old_vision = self.vision_model
+                self.vision_model = vision_model
+                logger.info(f"✓ Switched vision model: {old_vision} → {vision_model}")
+            
+            if reasoning_model:
+                old_reasoning = self.reasoning_model
+                self.reasoning_model = reasoning_model
+                logger.info(f"✓ Switched reasoning model: {old_reasoning} → {reasoning_model}")
+            
+            return True
+        
+        except Exception as e:
+            logger.error(f"Error reloading models: {e}")
+            return False
 
     async def check_connection(self) -> bool:
         """Check if Ollama is reachable."""
